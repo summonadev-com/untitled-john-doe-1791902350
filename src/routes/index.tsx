@@ -31,6 +31,24 @@ function HomePage() {
   const [due, setDue] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'done'>('all');
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [editDue, setEditDue] = useState('');
+
+  function startEdit(t: Todo) {
+    setEditingId(t.id);
+    setEditText(t.text);
+    setEditDue(t.due);
+  }
+
+  function saveEdit() {
+    const v = editText.trim();
+    if (v) {
+      setTodos(todos.map((x) => (x.id === editingId ? { ...x, text: v, due: editDue } : x)));
+    }
+    setEditingId(null);
+  }
+
   useEffect(() => {
     localStorage.setItem(KEY, JSON.stringify(todos));
   }, [todos]);
@@ -115,10 +133,47 @@ function HomePage() {
                   onChange={() => setTodos(todos.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)))}
                   className="size-5 accent-indigo-600"
                 />
-                <span className={`flex-1 ${t.done ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
-                  {t.text}
-                </span>
-                {t.due && (
+                {editingId === t.id ? (
+                  <form
+                    className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      saveEdit();
+                    }}
+                  >
+                    <input
+                      autoFocus
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Escape' && setEditingId(null)}
+                      className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-300"
+                    />
+                    <input
+                      type="date"
+                      value={editDue}
+                      onChange={(e) => setEditDue(e.target.value)}
+                      className="rounded-lg border border-slate-200 px-2 py-1 text-sm text-slate-600"
+                    />
+                    <button className="rounded-lg bg-indigo-600 px-3 py-1 text-sm text-white hover:bg-indigo-700">
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(null)}
+                      className="text-sm text-slate-500 hover:text-slate-700"
+                    >
+                      Cancel
+                    </button>
+                  </form>
+                ) : (
+                  <span
+                    onDoubleClick={() => startEdit(t)}
+                    className={`flex-1 ${t.done ? 'text-slate-400 line-through' : 'text-slate-800'}`}
+                  >
+                    {t.text}
+                  </span>
+                )}
+                {editingId !== t.id && t.due && (
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
                       overdue ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'
@@ -127,6 +182,15 @@ function HomePage() {
                     {overdue ? 'Overdue · ' : ''}
                     {formatDue(t.due)}
                   </span>
+                )}
+                {editingId !== t.id && (
+                  <button
+                    onClick={() => startEdit(t)}
+                    aria-label="Edit"
+                    className="text-slate-400 hover:text-indigo-600"
+                  >
+                    ✎
+                  </button>
                 )}
                 <button
                   onClick={() => setTodos(todos.filter((x) => x.id !== t.id))}
